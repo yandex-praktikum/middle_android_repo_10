@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android") // Using direct plugin ID
 }
 
 android {
@@ -16,15 +18,29 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Добавляем API ключ из local.properties
+        val defaultApiKey = "8fd9a0f2216e2bc16a09102e2af8ab1d" // Fallback API key (for development only)
+        val weatherApiKey: String = findProperty("WEATHER_API_KEY")?.toString() ?: defaultApiKey
+        if (weatherApiKey.isBlank()) {
+            logger.warn("WARNING: Using default API key! For production, add WEATHER_API_KEY=your_api_key to local.properties")
+        }
+        buildConfigField("String", "WEATHER_API_KEY", "\"$weatherApiKey\"")
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        
+        debug {
+            applicationIdSuffix = ".debug"
+            isDebuggable = true
         }
     }
     compileOptions {
@@ -36,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -57,6 +74,7 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.10.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -71,6 +89,12 @@ dependencies {
     
     // Coil image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // Hilt (Dependency Injection) - using version catalog
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.appcompat)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     
     // Testing
     testImplementation(libs.junit)

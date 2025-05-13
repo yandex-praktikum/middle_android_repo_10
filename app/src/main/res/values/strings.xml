@@ -4,12 +4,29 @@
     <string name="current_location">Current location</string>
     <string name="loading">Loading weather data…</string>
     <string name="refresh">Refresh</string>
-    <string name="temperature">Temperature: %1$s°C</string>
-    <string name="feels_like">Feels like: %1$s°C</string>
-    <string name="humidity">Humidity: %1$s%%</string>
-    <string name="wind">Wind: %1$s m/s</string>
-    <string name="description">Description: %1$s</string>
+    <string name="temperature">Temperature</string>
+    <string name="feels_like">Feels like</string>
+    <string name="humidity">Humidity</string>
+    <string name="wind">Wind</string>
+    <string name="description">Description</string>
+    <string name="sunrise">Sunrise</string>
+    <string name="sunset">Sunset</string>
+    <string name="refresh_weather">Refresh Weather</string>
+    <string name="retry">Retry</string>
+    <string name="no_network_connection">No network connection</string>
     <string name="no_location_permission">Location permission is required to get current weather</string>
     <string name="location_error">Unable to get current location</string>
     <string name="network_error">Network error. Please check your connection</string>
+    <string name="permission_required">Location permission required</string>
+    <string name="permission_rationale">Weather app needs access to your location to provide accurate weather information.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="cancel">Cancel</string>
+    
+    <!-- Weather format strings -->
+    <string name="format_temperature">%d°C</string>
+    <string name="format_humidity">%d%%</string>
+    <string name="format_pressure">%d hPa</string>
+    <string name="format_wind_speed">%.1f m/s</string>
+    <string name="format_time">HH:mm</string>
+    <string name="format_date">dd.MM.yyyy</string>
 </resources>

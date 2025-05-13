@@ -5,20 +5,30 @@ data class Location(
     val longitude: Double,
     val name: String? = null
 ) {
-    
+    // Оптимизированная реализация toString с использованием StringBuilder
     override fun toString(): String {
-        var result = ""
-        result += "Latitude: $latitude, "
-        result += "Longitude: $longitude"
-        name?.let {
-            result += ", Name: $it"
+        return buildString {
+            append("Latitude: $latitude, Longitude: $longitude")
+            name?.let {
+                append(", Name: $it")
+            }
         }
-        return result
     }
     
-    
+    // Переопределение equals и hashCode для соответствия контракту
     override fun equals(other: Any?): Boolean {
+        if (this === other) return true
         if (other !is Location) return false
-        return latitude == other.latitude && longitude == other.longitude
+
+        if (latitude != other.latitude) return false
+        if (longitude != other.longitude) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = latitude.hashCode()
+        result = 31 * result + longitude.hashCode()
+        return result
     }
 }

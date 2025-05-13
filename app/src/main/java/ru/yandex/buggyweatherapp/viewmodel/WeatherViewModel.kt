@@ -1,157 +1,249 @@
 package ru.yandex.buggyweatherapp.viewmodel
 
-import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import ru.yandex.buggyweatherapp.WeatherApplication
 import ru.yandex.buggyweatherapp.model.Location
-import ru.yandex.buggyweatherapp.model.WeatherData
-import ru.yandex.buggyweatherapp.repository.LocationRepository
-import ru.yandex.buggyweatherapp.repository.WeatherRepository
-import ru.yandex.buggyweatherapp.utils.ImageLoader
-import java.util.Timer
-import java.util.TimerTask
+import ru.yandex.buggyweatherapp.model.WeatherUiModel
+import ru.yandex.buggyweatherapp.repository.ILocationRepository
+import ru.yandex.buggyweatherapp.repository.IWeatherRepository
+import ru.yandex.buggyweatherapp.ui.state.UiState
+import ru.yandex.buggyweatherapp.utils.NetworkConnectivityManager
+import ru.yandex.buggyweatherapp.utils.NetworkState
+import javax.inject.Inject
 
-class WeatherViewModel : ViewModel() {
+/**
+ * ViewModel для экрана погоды.
+ * Обновлено: Удалены зависимости от контекста и форматирования. ViewModel 
+ * теперь отвечает только за бизнес-логику, а представление данных - ответственность UI слоя.
+ */
+@HiltViewModel
+class WeatherViewModel @Inject constructor(
+    private val weatherRepository: IWeatherRepository,
+    private val locationRepository: ILocationRepository,
+    private val networkManager: NetworkConnectivityManager
+) : ViewModel() {
     
+    // UI состояние для погоды, используя WeatherUiModel вместо WeatherData
+    private val _weatherState = MutableStateFlow<UiState<WeatherUiModel>>(UiState.Loading)
+    val weatherState: StateFlow<UiState<WeatherUiModel>> = _weatherState
     
-    private lateinit var activityContext: Context
+    // Текущее местоположение - используем StateFlow вместо LiveData
+    private val _currentLocation = MutableStateFlow<Location?>(null)
+    val currentLocation: StateFlow<Location?> = _currentLocation
     
+    // Название города - используем StateFlow вместо LiveData
+    private val _cityName = MutableStateFlow<String>("")
+    val cityName: StateFlow<String> = _cityName
     
-    private val weatherRepository = WeatherRepository()
-    private val locationRepository by lazy { 
-        LocationRepository(activityContext)
+    // Состояние сети - StateFlow для основного состояния
+    val isNetworkAvailable: StateFlow<Boolean> = networkManager.isNetworkAvailable
+    
+    // Детальные события сети
+    val networkEvents: Flow<NetworkState> = networkManager.networkEvents
+    
+    // Задание для автообновления
+    private var autoRefreshJob: Job? = null
+
+    // Сетевые задания
+    private var networkMonitorJob: Job? = null
+
+    init {
+        // Стартуем мониторинг сети и реакцию на изменения
+        startNetworkMonitoring()
     }
     
-    
-    val weatherData = MutableLiveData<WeatherData>()
-    val currentLocation = MutableLiveData<Location>()
-    val isLoading = MutableLiveData<Boolean>()
-    val error = MutableLiveData<String>()
-    val cityName = MutableLiveData<String>()
-    
-    
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    
-    
-    private var refreshTimer: Timer? = null
-    
-    
-    fun initialize(context: Context) {
-        this.activityContext = context
-        fetchCurrentLocationWeather()
-        
-        
-        startAutoRefresh()
-    }
-    
-    
+    // Получение погоды для текущего местоположения
     fun fetchCurrentLocationWeather() {
-        isLoading.value = true
-        error.value = null
-        
-        locationRepository.getCurrentLocation { location ->
-            if (location != null) {
-                currentLocation.value = location
+        viewModelScope.launch {
+            _weatherState.value = UiState.Loading
+
+            try {
+                val locationResult = locationRepository.getCurrentLocation()
                 
-                
-                val cityNameFromLocation = locationRepository.getCityNameFromLocation(location)
-                cityName.value = cityNameFromLocation
-                
-                getWeatherForLocation(location)
-            } else {
-                isLoading.value = false
-                error.value = "Unable to get current location"
+                locationResult.fold(
+                    onSuccess = { location ->
+                        _currentLocation.value = location
+
+                        // Получение названия города асинхронно
+                        val cityResult = locationRepository.getCityNameFromLocation(location)
+                        cityResult.fold(
+                            onSuccess = { city ->
+                                _cityName.value = city
+                            },
+                            onFailure = {
+                                // Если не удалось получить название города, используем пустую строку
+                                if (_cityName.value.isBlank()) {
+                                    _cityName.value = "Неизвестное место"
+                                }
+                            }
+                        )
+
+                        // Получение данных о погоде
+                        getWeatherForLocation(location)
+                    },
+                    onFailure = { e ->
+                        _weatherState.value = UiState.Error("Не удалось получить текущее местоположение: ${e.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                _weatherState.value = UiState.Error("Ошибка при получении местоположения: ${e.message}")
             }
         }
     }
     
+    // Получение погоды для заданного местоположения
     fun getWeatherForLocation(location: Location) {
-        isLoading.value = true
-        error.value = null
-        
-        weatherRepository.getWeatherData(location) { data, exception ->
-            
-            Handler(Looper.getMainLooper()).post {
-                isLoading.value = false
+        viewModelScope.launch {
+            _weatherState.value = UiState.Loading
+
+            if (!networkManager.isNetworkAvailable()) {
+                _weatherState.value = UiState.Error("Отсутствует подключение к сети")
+                return@launch
+            }
+
+            try {
+                val result = weatherRepository.getWeatherData(location)
                 
-                if (data != null) {
-                    weatherData.value = data
-                } else {
-                    error.value = exception?.message ?: "Unknown error"
-                }
+                result.fold(
+                    onSuccess = { data ->
+                        // Создаем UI модель из данных
+                        val uiModel = data.toUiModel()
+                        _weatherState.value = UiState.Success(uiModel)
+                    },
+                    onFailure = { e ->
+                        _weatherState.value = UiState.Error("Ошибка при загрузке погоды: ${e.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                _weatherState.value = UiState.Error("Неизвестная ошибка: ${e.message}")
             }
         }
     }
     
+    // Поиск погоды по названию города
     fun searchWeatherByCity(city: String) {
         if (city.isBlank()) {
-            error.value = "City name cannot be empty"
+            _weatherState.value = UiState.Error("Название города не может быть пустым")
             return
         }
         
-        isLoading.value = true
-        error.value = null
-        
-        
-        weatherRepository.getWeatherByCity(city) { data, exception ->
+        viewModelScope.launch {
+            _weatherState.value = UiState.Loading
+
+            if (!networkManager.isNetworkAvailable()) {
+                _weatherState.value = UiState.Error("Отсутствует подключение к сети")
+                return@launch
+            }
             
-            isLoading.value = false
-            
-            if (data != null) {
-                weatherData.value = data
-                cityName.value = data.cityName
-                currentLocation.value = Location(0.0, 0.0, data.cityName)
-            } else {
-                error.value = exception?.message ?: "Unknown error"
+            try {
+                val result = weatherRepository.getWeatherByCity(city)
+
+                result.fold(
+                    onSuccess = { data ->
+                        // Создаем UI модель из данных
+                        val uiModel = data.toUiModel()
+                        _weatherState.value = UiState.Success(uiModel)
+                        _cityName.value = data.cityName
+                        _currentLocation.value = Location(
+                            latitude = data.latitude ?: 0.0,
+                            longitude = data.longitude ?: 0.0,
+                            name = data.cityName
+                        )
+                    },
+                    onFailure = { e ->
+                        _weatherState.value = UiState.Error("Ошибка при загрузке погоды: ${e.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                _weatherState.value = UiState.Error("Неизвестная ошибка: ${e.message}")
             }
         }
     }
     
-    
-    fun formatTemperature(temp: Double): String {
-        return "${temp.toInt()}°C"
-    }
-    
-    
-    fun loadWeatherIcon(iconCode: String) {
-        coroutineScope.launch {
-            val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
-            ImageLoader.loadImage(iconUrl)
-        }
-    }
-    
-    
-    private fun startAutoRefresh() {
-        refreshTimer = Timer()
-        refreshTimer?.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                currentLocation.value?.let { location ->
+    // Вместо форматирования в ViewModel, данные передаются в UI слой,
+    // где они будут отформатированы с использованием строковых ресурсов.
+    // Это соответствует принципу разделения ответственности.
+
+    // Запуск автоматического обновления данных
+    fun startAutoRefresh() {
+        // Отменяем предыдущее задание, если оно существует
+        autoRefreshJob?.cancel()
+
+        // Запускаем новое задание
+        autoRefreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60000) // Обновление каждую минуту
+                _currentLocation.value?.let { location ->
                     getWeatherForLocation(location)
                 }
             }
-        }, 60000, 60000)
-    }
-    
-    
-    fun toggleFavorite() {
-        weatherData.value?.let {
-            it.isFavorite = !it.isFavorite
-            
-            weatherData.value = it
         }
     }
-    
-    
+
+    // Остановка автоматического обновления
+    fun stopAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
+    /**
+     * Запускает мониторинг состояния сети и реакцию на изменения
+     */
+    private fun startNetworkMonitoring() {
+        networkMonitorJob?.cancel()
+        networkMonitorJob = viewModelScope.launch {
+            // Мониторим изменения и реагируем на них
+            networkEvents.collectLatest { state ->
+                when (state) {
+                    is NetworkState.Available -> {
+                        if (_weatherState.value is UiState.Error) {
+                            // Если у нас была ошибка из-за сети, пробуем загрузить заново
+                            _currentLocation.value?.let { location ->
+                                getWeatherForLocation(location)
+                            } ?: fetchCurrentLocationWeather()
+                        }
+                    }
+                    is NetworkState.Lost,
+                    is NetworkState.Unavailable -> {
+                        // При потере сети сообщаем пользователю, но только если активно загружаем данные
+                        if (_weatherState.value is UiState.Loading) {
+                            _weatherState.value = UiState.Error("Отсутствует подключение к сети")
+                        }
+                    }
+                    is NetworkState.CapabilitiesChanged -> {
+                        // Если сеть стала доступна, но была ошибка, пробуем заново
+                        if (state.hasInternet && state.hasValidated && _weatherState.value is UiState.Error) {
+                            _currentLocation.value?.let { location ->
+                                getWeatherForLocation(location)
+                            }
+                        }
+                    }
+                    else -> { /* Другие состояния не обрабатываем */ }
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
-        
+        // Отменяем автоматическое обновление
+        stopAutoRefresh()
+
+        // Останавливаем мониторинг сети
+        networkMonitorJob?.cancel()
+        networkMonitorJob = null
+
+        // Освобождаем ресурсы
+        viewModelScope.cancel()
     }
 }
