@@ -11,23 +11,22 @@ import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.model.WeatherData
 import java.util.Date
 
-// ОШИБКА: Не определен интерфейс (нарушение SOLID - отсутствие абстракции)
 class WeatherRepository {
     
-    // ОШИБКА: Отсутствует внедрение зависимостей, прямое использование синглтона
+    
     private val weatherApi = RetrofitInstance.weatherApi
     
-    // ОШИБКА: Нет потокобезопасности, кэширования или механизма времени жизни данных
+    
     private var cachedWeatherData: WeatherData? = null
     
-    // ОШИБКА: Архитектура на основе колбэков вместо корутин с правильной обработкой ошибок
+    
     fun getWeatherData(location: Location, callback: (WeatherData?, Exception?) -> Unit) {
-        // ОШИБКА: Отсутствует проверка подключения перед API-вызовом
+        
         val call = weatherApi.getCurrentWeather(location.latitude, location.longitude)
         
-        // ОШИБКА: Прямое выполнение сетевого вызова без правильной многопоточности
+        
         try {
-            // ОШИБКА: Синхронный вызов в основном потоке, что вызовет ANR
+            
             val response = call.execute()
             
             if (response.isSuccessful) {
@@ -35,11 +34,11 @@ class WeatherRepository {
                 cachedWeatherData = weatherData
                 callback(weatherData, null)
             } else {
-                // ОШИБКА: Нет сообщения об ошибке, просто null
+                
                 callback(null, Exception("API Error: ${response.code()}"))
             }
         } catch (e: Exception) {
-            // ОШИБКА: Проглатывание исключений с простым логированием
+            
             Log.e("WeatherRepository", "Error fetching weather", e)
             callback(null, e)
         }
@@ -55,7 +54,7 @@ class WeatherRepository {
                         val weatherData = parseWeatherData(json, location)
                         callback(weatherData, null)
                     } catch (e: Exception) {
-                        // ОШИБКА: Тихая обработка всех исключений
+                        
                         callback(null, e)
                     }
                 } else {
@@ -69,9 +68,9 @@ class WeatherRepository {
         })
     }
     
-    // ОШИБКА: Обработка в UI-потоке
+    
     private fun parseWeatherData(json: JsonObject, location: Location): WeatherData {
-        // ОШИБКА: Неэффективная логика парсинга JSON
+        
         val main = json.getAsJsonObject("main")
         val wind = json.getAsJsonObject("wind")
         val sys = json.getAsJsonObject("sys")

@@ -22,22 +22,20 @@ import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 
 class MainActivity : ComponentActivity() {
     
-    // ОШИБКА: ViewModel создается напрямую, не через ViewModelProvider
     private val weatherViewModel = WeatherViewModel()
     
-    // ОШИБКА: Нет правильной обработки разрешений
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         when {
             permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true -> {
-                // ОШИБКА: Нет обработки изменений разрешений
+                
             }
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true -> {
-                // ОШИБКА: Нет обработки изменений разрешений
+                
             }
             else -> {
-                // ОШИБКА: Нет обновления UI при отказе в разрешениях
+                
             }
         }
     }
@@ -45,7 +43,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // ОШИБКА: Нет обработки ошибок для отсутствующих разрешений
         val hasFineLocation = ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -67,7 +64,6 @@ class MainActivity : ComponentActivity() {
         
         enableEdgeToEdge()
         
-        // ОШИБКА: Божественная активити, обрабатывающая всё
         setContent {
             BuggyWeatherAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -80,12 +76,10 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    // ОШИБКА: Не обрабатываются изменения конфигурации
     
-    // ОШИБКА: Утечка памяти - нет очистки ресурсов
     override fun onDestroy() {
         super.onDestroy()
-        // Должны очищаться ресурсы, но этого не происходит
+        
     }
 }
 
@@ -93,7 +87,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WeatherAppPreview() {
     BuggyWeatherAppTheme {
-        // ОШИБКА: Отсутствует реализация превью
+        
         Text("Weather App Preview")
     }
 }

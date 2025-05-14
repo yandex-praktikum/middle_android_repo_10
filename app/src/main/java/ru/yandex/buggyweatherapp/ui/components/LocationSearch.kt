@@ -66,13 +66,12 @@ fun LocationSearch(
     }
 }
 
-// ОШИБКА: Прямой вызов API в UI-компоненте
 @Composable
 fun LocationSearchWithDirectApiCall() {
     val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
     
-    // ОШИБКА: Создание репозиториев напрямую в компонуемой функции (новые экземпляры при каждой рекомпозиции)
+    
     val weatherRepository = WeatherRepository()
     val locationRepository = LocationRepository(context)
     
@@ -86,10 +85,8 @@ fun LocationSearchWithDirectApiCall() {
         trailingIcon = {
             IconButton(onClick = { 
                 if (searchText.isNotBlank()) {
-                    // ОШИБКА: Прямой вызов API из UI-компонента в обход ViewModel
-                    weatherRepository.getWeatherByCity(searchText) { weatherData, error ->
-                        // ОШИБКА: Отсутствует обработка результата
-                    }
+                    
+                    weatherRepository.getWeatherByCity(searchText) { weatherData, error -> }
                 }
             }) {
                 Icon(Icons.Default.Search, contentDescription = "Search")

@@ -43,20 +43,20 @@ import ru.yandex.buggyweatherapp.viewmodel.WeatherViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
-    // ОШИБКА: Инициализация ViewModel с контекстом
+    
     val context = LocalContext.current
     
-    // ОШИБКА: Использование LaunchedEffect было бы более подходящим для этой разовой инициализации
+    
     DisposableEffect(Unit) {
-        // ОШИБКА: Передача контекста во ViewModel
+        
         viewModel.initialize(context)
         
         onDispose {
-            // ОШИБКА: Отсутствует очистка ресурсов
+            
         }
     }
     
-    // ОШИБКА: Использование нескольких вызовов observeAsState вместо сбора состояния в одном месте
+    
     val weatherData by viewModel.weatherData.observeAsState()
     val isLoading by viewModel.isLoading.observeAsState(false)
     val error by viewModel.error.observeAsState()
@@ -70,7 +70,6 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Строка поиска
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
@@ -78,7 +77,7 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = {
                 IconButton(onClick = { 
-                    // ОШИБКА: Прямой вызов ViewModel без валидации ввода
+                    
                     viewModel.searchWeatherByCity(searchText) 
                 }) {
                     Icon(Icons.Default.Search, contentDescription = "Search")
@@ -92,12 +91,12 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // ОШИБКА: Отсутствует индикатор загрузки, просто показывается предыдущая погода
+        
         if (isLoading && weatherData == null) {
             Text("Loading weather data...")
         }
         
-        // ОШИБКА: Отображение ошибки без возможности повтора
+        
         error?.let {
             Text(
                 text = it,
@@ -106,7 +105,6 @@ fun WeatherScreen(viewModel: WeatherViewModel, modifier: Modifier = Modifier) {
             )
         }
         
-        // Карточка погоды
         weatherData?.let { weather ->
             WeatherCard(
                 weather = weather,
@@ -164,7 +162,7 @@ fun WeatherCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // ОШИБКА: Прямая конкатенация строк в UI
+            
             Text(
                 text = "Temperature: " + weather.temperature.toString() + "°C",
                 style = MaterialTheme.typography.bodyLarge
@@ -196,7 +194,7 @@ fun WeatherCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // ОШИБКА: Использование глобальной утилитной функции вместо правильного форматирования
+                
                 Text(
                     text = "Sunrise: " + WeatherIconMapper.formatTimestamp(weather.sunriseTime),
                     style = MaterialTheme.typography.bodySmall

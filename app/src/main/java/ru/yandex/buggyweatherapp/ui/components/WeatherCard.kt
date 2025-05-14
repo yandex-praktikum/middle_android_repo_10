@@ -36,7 +36,7 @@ import ru.yandex.buggyweatherapp.utils.WeatherIconMapper
 fun DetailedWeatherCard(weather: WeatherData) {
     val context = LocalContext.current
     
-    // ОШИБКА: Создание нового ImageView при каждой рекомпозиции
+    
     val imageView = remember { ImageView(context) }
     
     Card(
@@ -72,17 +72,17 @@ fun DetailedWeatherCard(weather: WeatherData) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                // ОШИБКА: Использование AndroidView с ImageView вместо Compose Image с Coil
+                
                 AndroidView(
                     factory = { imageView },
                     modifier = Modifier.size(50.dp)
                 ) {
-                    // ОШИБКА: Прямой вызов ImageLoader в Composable
+                    
                     val iconUrl = "https://openweathermap.org/img/wn/${weather.icon}@2x.png"
                     ImageLoader.loadInto(iconUrl, it)
                 }
                 
-                // ОШИБКА: Неэффективная конкатенация строк
+                
                 Text(
                     text = weather.temperature.toString() + "°C",
                     style = MaterialTheme.typography.headlineLarge
@@ -96,7 +96,7 @@ fun DetailedWeatherCard(weather: WeatherData) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // ОШИБКА: Использование LazyColumn для маленького списка (ненужные накладные расходы на переработку)
+            
             LazyColumn {
                 item {
                     WeatherDataRow("Feels like", weather.feelsLike.toString() + "°C")
@@ -123,16 +123,16 @@ fun DetailedWeatherCard(weather: WeatherData) {
         }
     }
     
-    // ОШИБКА: Нет очистки ресурсов для ImageView
+    
     DisposableEffect(weather.icon) {
         val iconUrl = "https://openweathermap.org/img/wn/${weather.icon}@2x.png"
         
-        // ОШИБКА: Прямой синхронный вызов ImageLoader
+        
         val bitmap = ImageLoader.loadImageSync(iconUrl)
         imageView.setImageBitmap(bitmap)
         
         onDispose {
-            // Должна происходить очистка ссылки на ImageView
+            
         }
     }
 }

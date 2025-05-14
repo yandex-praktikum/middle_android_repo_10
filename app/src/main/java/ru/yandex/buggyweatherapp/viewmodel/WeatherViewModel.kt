@@ -19,42 +19,40 @@ import ru.yandex.buggyweatherapp.utils.ImageLoader
 import java.util.Timer
 import java.util.TimerTask
 
-// ОШИБКА: ViewModel со слишком большим количеством обязанностей (Божественная ViewModel)
 class WeatherViewModel : ViewModel() {
     
-    // ОШИБКА: Прямая инициализация без внедрения зависимостей
-    // ОШИБКА: Хранение контекста активити
+    
     private lateinit var activityContext: Context
     
-    // ОШИБКА: Прямое создание экземпляра репозитория вместо DI
+    
     private val weatherRepository = WeatherRepository()
     private val locationRepository by lazy { 
-        LocationRepository(activityContext)  // ОШИБКА: Использование контекста активити в репозитории
+        LocationRepository(activityContext)
     }
     
-    // ОШИБКА: Слишком много объектов LiveData
+    
     val weatherData = MutableLiveData<WeatherData>()
     val currentLocation = MutableLiveData<Location>()
     val isLoading = MutableLiveData<Boolean>()
     val error = MutableLiveData<String>()
     val cityName = MutableLiveData<String>()
     
-    // ОШИБКА: Область корутин не привязана к жизненному циклу ViewModel
+    
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     
-    // ОШИБКА: Таймер не отменяется в onCleared
+    
     private var refreshTimer: Timer? = null
     
-    // ОШИБКА: Хранение контекста активити
+    
     fun initialize(context: Context) {
         this.activityContext = context
         fetchCurrentLocationWeather()
         
-        // ОШИБКА: Запуск таймера без учета жизненного цикла
+        
         startAutoRefresh()
     }
     
-    // ОШИБКА: Отсутствует обработка ошибок
+    
     fun fetchCurrentLocationWeather() {
         isLoading.value = true
         error.value = null
@@ -63,7 +61,7 @@ class WeatherViewModel : ViewModel() {
             if (location != null) {
                 currentLocation.value = location
                 
-                // ОШИБКА: Синхронная операция, блокирующая UI
+                
                 val cityNameFromLocation = locationRepository.getCityNameFromLocation(location)
                 cityName.value = cityNameFromLocation
                 
@@ -80,7 +78,7 @@ class WeatherViewModel : ViewModel() {
         error.value = null
         
         weatherRepository.getWeatherData(location) { data, exception ->
-            // ОШИБКА: Прямое обновление UI-потока без использования диспетчера
+            
             Handler(Looper.getMainLooper()).post {
                 isLoading.value = false
                 
@@ -102,9 +100,9 @@ class WeatherViewModel : ViewModel() {
         isLoading.value = true
         error.value = null
         
-        // ОШИБКА: Не используются корутины для сетевых операций
+        
         weatherRepository.getWeatherByCity(city) { data, exception ->
-            // ОШИБКА: Прямое обновление LiveData из колбэка без переключения на главный поток
+            
             isLoading.value = false
             
             if (data != null) {
@@ -117,12 +115,12 @@ class WeatherViewModel : ViewModel() {
         }
     }
     
-    // ОШИБКА: Бизнес-логика в ViewModel
+    
     fun formatTemperature(temp: Double): String {
         return "${temp.toInt()}°C"
     }
     
-    // ОШИБКА: Тяжелая загрузка изображений в ViewModel
+    
     fun loadWeatherIcon(iconCode: String) {
         coroutineScope.launch {
             val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
@@ -130,7 +128,7 @@ class WeatherViewModel : ViewModel() {
         }
     }
     
-    // ОШИБКА: Таймер не учитывает жизненный цикл
+    
     private fun startAutoRefresh() {
         refreshTimer = Timer()
         refreshTimer?.scheduleAtFixedRate(object : TimerTask() {
@@ -139,22 +137,21 @@ class WeatherViewModel : ViewModel() {
                     getWeatherForLocation(location)
                 }
             }
-        }, 60000, 60000) // Обновление каждую минуту
+        }, 60000, 60000)
     }
     
-    // ОШИБКА: Не обрабатываются ошибки бизнес-логики
+    
     fun toggleFavorite() {
         weatherData.value?.let {
             it.isFavorite = !it.isFavorite
-            // ОШИБКА: Прямое изменение объекта LiveData
+            
             weatherData.value = it
         }
     }
     
-    // ОШИБКА: Очищаются только некоторые ресурсы
+    
     override fun onCleared() {
         super.onCleared()
-        // ОШИБКА: Не отменяются корутины
-        // ОШИБКА: Не отменяется таймер
+        
     }
 }

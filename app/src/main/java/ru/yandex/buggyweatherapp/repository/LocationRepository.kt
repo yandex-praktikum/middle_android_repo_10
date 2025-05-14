@@ -14,27 +14,26 @@ import ru.yandex.buggyweatherapp.model.Location
 import ru.yandex.buggyweatherapp.utils.LocationTracker
 import java.util.Locale
 
-// ОШИБКА: Отсутствует интерфейс для инверсии зависимостей
 class LocationRepository(
-    // ОШИБКА: Прямое использование контекста без учета жизненного цикла
+    
     private val context: Context
 ) {
-    // ОШИБКА: Прямая инициализация тяжелых объектов без правильной очистки
+    
     private val fusedLocationClient: FusedLocationProviderClient = 
         LocationServices.getFusedLocationProviderClient(context)
     
-    // ОШИБКА: Отсутствует потокобезопасность
+    
     private var currentLocation: Location? = null
     
-    // ОШИБКА: Утечка памяти - сохранение ссылки на колбэк
+    
     private var locationCallback: ((Location?) -> Unit)? = null
     
-    // ОШИБКА: Создание новых экземпляров колбэка для каждого запроса
+    
     fun getCurrentLocation(callback: (Location?) -> Unit) {
         try {
             locationCallback = callback
             
-            // ОШИБКА: Отсутствует проверка разрешений перед запросом местоположения
+            
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location ->
                     if (location != null) {
@@ -45,7 +44,7 @@ class LocationRepository(
                         currentLocation = userLocation
                         callback(userLocation)
                     } else {
-                        // ОШИБКА: Запуск обновлений местоположения без правильной очистки
+                        
                         requestLocationUpdates(callback)
                     }
                 }
@@ -59,7 +58,7 @@ class LocationRepository(
         }
     }
     
-    // ОШИБКА: Отсутствует правильная остановка обновлений местоположения
+    
     private fun requestLocationUpdates(callback: (Location?) -> Unit) {
         try {
             val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
@@ -77,12 +76,12 @@ class LocationRepository(
                         currentLocation = userLocation
                         callback(userLocation)
                         
-                        // ОШИБКА: Не удаляются обновления после получения местоположения
+                        
                     }
                 }
             }
             
-            // ОШИБКА: Использование Looper.getMainLooper() для обновлений местоположения
+            
             fusedLocationClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
@@ -94,10 +93,10 @@ class LocationRepository(
         }
     }
     
-    // ОШИБКА: Тяжелая операция в UI-потоке
+    
     fun getCityNameFromLocation(location: Location): String? {
         try {
-            // ОШИБКА: Создание нового экземпляра Geocoder для каждого вызова
+            
             val geocoder = Geocoder(context, Locale.getDefault())
             
             @Suppress("DEPRECATION")
@@ -121,10 +120,10 @@ class LocationRepository(
         }
     }
     
-    // ОШИБКА: Делегирование другому синглтону вместо внедрения зависимостей
+    
     fun startLocationTracking() {
         LocationTracker.getInstance(context).startTracking()
     }
     
-    // ОШИБКА: Отсутствует метод очистки для освобождения ресурсов
+    
 }

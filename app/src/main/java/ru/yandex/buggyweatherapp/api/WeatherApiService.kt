@@ -7,14 +7,13 @@ import retrofit2.http.Query
 
 interface WeatherApiService {
     
-    // ОШИБКА: Захардкоженный API-ключ как константа в интерфейсе
-    // (Проблема безопасности - раскрытие API-ключа в исходном коде)
+    
     companion object {
         const val API_KEY = "8fd9a0f2216e2bc16a09102e2af8ab1d"
-        const val BASE_URL = "http://api.openweathermap.org/data/2.5/" // ОШИБКА: Использование HTTP вместо HTTPS
+        const val BASE_URL = "http://api.openweathermap.org/data/2.5/"
     }
     
-    // ОШИБКА: Использование Call<> вместо suspend-функций
+    
     @GET("weather")
     fun getCurrentWeather(
         @Query("lat") latitude: Double,

@@ -5,7 +5,7 @@ data class Location(
     val longitude: Double,
     val name: String? = null
 ) {
-    // ОШИБКА: Неэффективные операции со строками, которые можно оптимизировать
+    
     override fun toString(): String {
         var result = ""
         result += "Latitude: $latitude, "
@@ -16,7 +16,7 @@ data class Location(
         return result
     }
     
-    // ОШИБКА: Неправильная реализация equals, которая не соответствует hashCode
+    
     override fun equals(other: Any?): Boolean {
         if (other !is Location) return false
         return latitude == other.latitude && longitude == other.longitude
