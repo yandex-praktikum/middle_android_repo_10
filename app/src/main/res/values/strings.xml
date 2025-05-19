@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Buggy Weather App</string>
+    <string name="search_city">Search city</string>
+    <string name="current_location">Current location</string>
+    <string name="loading">Loading weather data…</string>
+    <string name="refresh">Refresh</string>
+    <string name="temperature">Temperature: %1$s°C</string>
+    <string name="feels_like">Feels like: %1$s°C</string>
+    <string name="humidity">Humidity: %1$s%%</string>
+    <string name="wind">Wind: %1$s m/s</string>
+    <string name="description">Description: %1$s</string>
+    <string name="no_location_permission">Location permission is required to get current weather</string>
+    <string name="location_error">Unable to get current location</string>
+    <string name="network_error">Network error. Please check your connection</string>
+</resources>
